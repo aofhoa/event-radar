@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股全球雷达 · 事件驱动</title>
+<style>
+/* ===== Apple Liquid Glass 液态玻璃风格 ===== */
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  background:linear-gradient(135deg,#0a0e1a 0%,#131a30 40%,#0f0f1e 100%);
+  color:#f5f5f7;min-height:100vh;overflow-x:hidden;padding:32px 20px 60px;
+}
+/* 背景光斑（液态玻璃的辉光） */
+body::before,body::after{
+  content:'';position:fixed;border-radius:50%;filter:blur(90px);z-index:0;pointer-events:none;
+}
+body::before{width:420px;height:420px;background:rgba(88,166,255,.28);top:-120px;left:-80px;animation:float1 16s ease-in-out infinite}
+body::after{width:360px;height:360px;background:rgba(180,120,255,.22);bottom:-100px;right:-60px;animation:float2 20s ease-in-out infinite}
+@keyframes float1{50%{transform:translate(60px,40px) scale(1.15)}}
+@keyframes float2{50%{transform:translate(-50px,-30px) scale(1.1)}}
+.container{position:relative;z-index:1;max-width:1080px;margin:0 auto}
+h1{font-size:30px;font-weight:600;letter-spacing:-0.5px;
+  background:linear-gradient(120deg,#fff 30%,#9ec5ff 60%,#c9aaff 90%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.sub{color:#a1a1b5;font-size:14px;margin-bottom:28px}
+.sub b{color:#6eb6ff}
+/* 液态玻璃卡片 */
+.glass{
+  background:rgba(255,255,255,.07);
+  backdrop-filter:blur(24px) saturate(160%);
+  -webkit-backdrop-filter:blur(24px) saturate(160%);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:22px;
+  box-shadow:0 8px 32px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.15);
+  padding:22px;margin-bottom:18px;transition:transform .25s ease,box-shadow .25s ease;
+}
+.glass:hover{transform:translateY(-3px);box-shadow:0 14px 44px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.2)}
+.glass h3{font-size:14px;font-weight:600;color:#9ec5ff;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.glass h3::before{content:'';width:6px;height:6px;border-radius:50%;background:#6eb6ff;box-shadow:0 0 12px #6eb6ff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:7px 2px;font-size:14px;border-bottom:1px solid rgba(255,255,255,.07)}
+.row:last-child{border-bottom:none}
+.up{color:#30d158;text-shadow:0 0 12px rgba(48,209,88,.4)}
+.down{color:#ff453a;text-shadow:0 0 12px rgba(255,69,58,.35)}
+.flat{color:#a1a1b5}
+.tag{display:inline-block;font-size:11px;padding:2px 10px;border-radius:20px;margin-right:8px;
+  background:rgba(110,182,255,.14);border:1px solid rgba(110,182,255,.3);color:#9ec5ff}
+.badge{font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#c8c8de}
+.chain{font-size:12px;color:#9a9ab0;margin-top:8px;line-height:1.7}
+.evt{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.07)}
+.evt:last-child{border-bottom:none;margin-bottom:0}
+.evt b{font-size:14px;color:#fff}
+.footer{color:#6f6f88;font-size:12px;text-align:center;margin-top:30px}
+.pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:#30d158;margin-right:6px;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.3}}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>A股全球雷达 · 事件驱动</h1>
+  <div class="sub"><span class="pulse"></span><b id="updated">更新于 …</b> · 每 10 秒自动刷新 · 事件 → 行业 → 埋伏</div>
+
+  <div class="grid">
+    <div class="glass"><h3>大盘指数</h3><div id="idx"></div></div>
+    <div class="glass"><h3>调仓建议 · 10 日</h3><div id="recs"></div></div>
+    <div class="glass"><h3>事件埋伏观察池</h3><div id="ambush"></div></div>
+  </div>
+
+  <div class="glass" style="margin-top:18px"><h3>事件雷达（已核验 · 传导链）</h3><div id="events"></div></div>
+
+  <div class="footer">数据：腾讯实时 · FTShare · 东财 ｜ 客观信号输出，不构成投资建议 ｜ 投资有风险</div>
+</div>
+
+<script>
+function pct(v){
+  if(v==null)return '<span class="flat">-</span>';
+  var c=v>0?'up':'down';
+  return '<span class="'+c+'">'+(v>0?'+':'')+v.toFixed(2)+'%</span>';
+}
+function refresh(){
+fetch('data.json?v='+Date.now()).then(r=>r.json()).then(d=>{
+  document.getElementById('updated').textContent='更新于 '+d.updated;
+  var idx='';
+  ['sh','sz','hs300'].forEach(k=>{var v=d.idx[k];if(v&&v.name)idx+='<div class="row"><span>'+v.name+'</span><span>'+v.price+' '+pct(v.pct)+'</span></div>'});
+  document.getElementById('idx').innerHTML=idx;
+  var recs='';d.recs.forEach(r=>{recs+='<div class="row"><span><span class="tag">'+r.tag+'</span>'+r.name+'</span><span>'+r.price+' '+pct(r.pct)+'</span></div>'});
+  document.getElementById('recs').innerHTML=recs;
+  var am='';d.ambush.forEach(r=>{am+='<div class="row"><span><span class="tag">'+r.tag+'</span>'+r.name+'</span><span>'+r.price+' '+pct(r.pct)+'</span></div>'});
+  document.getElementById('ambush').innerHTML=am;
+  var ev='';d.events.forEach(e=>{
+    ev+='<div class="evt"><b>'+e.name+'</b> <span class="badge">'+e.type+'</span> <span class="badge">'+e.expected+'</span>'
+       +'<div class="chain">传导链：'+e.chain+'</div><div class="chain">验证：'+e.verification+'</div></div>';
+  });
+  document.getElementById('events').innerHTML=ev;
+}).catch(()=>{document.getElementById('updated').textContent='刷新失败，重试中…'});
+}
+refresh();setInterval(refresh,10000);
+</script>
+</body>
+</html>
