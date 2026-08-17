@@ -97,7 +97,8 @@ fetch('data.json?v='+Date.now()).then(r=>r.json()).then(d=>{
   var keys=Object.keys(d.idx).filter(k=>d.idx[k]&&d.idx[k].name);
   keys.forEach(function(k,i){var v=d.idx[k];idx+='<div class="row"><span>'+(v.name||idxMap[i])+'</span><span>'+v.price+' '+pct(v.pct)+'</span></div>'});
   document.getElementById('idx').innerHTML=idx;
-  var sec='';d.sector.forEach(r=>{sec+='<div class="row"><span>'+r.name+'</span><span>主力 '+r.net.toFixed(1)+'亿 '+pct(r.pct)+'</span></div>'});
+  var sec='';d.sector.forEach(r=>{sec+='<div class="row"><span>'+r.name+(r.cache?'<span class="badge" style="margin-left:6px">缓存 '+r.cache.slice(11,16)+'</span>':'')+'</span><span>主力 '+r.net.toFixed(1)+'亿 '+pct(r.pct)+'</span></div>'});
+  if(!d.sector.length)sec='<div class="flat">行业数据获取中…</div>';
   document.getElementById('sector').innerHTML=sec;
   var lm='<div class="temp"><span>涨停 '+d.limit.up+'</span><div class="bar"><div class="upb" style="width:'+Math.min(100,d.limit.up/2)+'%"></div></div><span class="down">跌停 5</span></div>'
         +'<div class="chain">最新涨停家数（'+(d.limit.date||'')+'）</div>';
