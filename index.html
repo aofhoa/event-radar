@@ -74,8 +74,9 @@ h1{font-size:32px;font-weight:700;letter-spacing:-0.8px;margin-bottom:6px;
   </div>
 
   <div class="grid" style="margin-top:0">
-    <div class="glass"><h3>调仓建议 · 10 日</h3><div id="recs"></div></div>
-    <div class="glass"><h3>事件埋伏观察池</h3><div id="ambush"></div></div>
+    <div class="glass"><h3>① 当日推荐 Top10（涨幅0-3%，T+1可出货）</h3><div id="day_top"></div></div>
+    <div class="glass"><h3>② 日后 1-7 天埋伏（未启动）</h3><div id="ambush_f"></div></div>
+    <div class="glass"><h3>③ 10 元以下推荐</h3><div id="low_p"></div></div>
   </div>
 
   <div class="glass" style="margin-top:18px"><h3>事件雷达（已核验 · 传导链 · 预计窗口）</h3><div id="events"></div></div>
@@ -103,10 +104,15 @@ fetch('data.json?v='+Date.now()).then(r=>r.json()).then(d=>{
   var lm='<div class="temp"><span>涨停 '+d.limit.up+'</span><div class="bar"><div class="upb" style="width:'+Math.min(100,d.limit.up/2)+'%"></div></div><span class="down">跌停 5</span></div>'
         +'<div class="chain">最新涨停家数（'+(d.limit.date||'')+'）</div>';
   document.getElementById('limit').innerHTML=lm;
-  var recs='';d.recs.forEach(r=>{recs+='<div class="row"><span><span class="tag">'+r.tag+'</span>'+r.name+'</span><span>'+r.price+' '+pct(r.pct)+'</span></div>'});
-  document.getElementById('recs').innerHTML=recs;
-  var am='';d.ambush.forEach(r=>{am+='<div class="row"><span><span class="tag">'+r.tag+'</span>'+r.name+'</span><span>'+r.price+' '+pct(r.pct)+'</span></div>'});
-  document.getElementById('ambush').innerHTML=am;
+  var dt='';d.sections.day_top.forEach(r=>{dt+='<div class="row"><span><span class="tag">当日</span>'+r.name+'</span><span>'+r.price+' '+pct(r.pct)+'</span></div>'});
+  if(!d.sections.day_top.length)dt='<div class="flat">暂无满足条件标的（当日涨幅需 0-3%）</div>';
+  document.getElementById('day_top').innerHTML=dt;
+  var af='';d.sections.ambush_future.forEach(r=>{af+='<div class="row"><span><span class="tag">埋伏</span>'+r.name+'<span class="badge" style="margin-left:6px">'+(r.evts[0]||'')+'</span></span><span>'+(r.d5!=null?('5日'+(r.d5>0?'+':'')+r.d5.toFixed(1)+'%'):'-')+'</span></div>'});
+  if(!d.sections.ambush_future.length)af='<div class="flat">暂无未启动埋伏标的</div>';
+  document.getElementById('ambush_f').innerHTML=af;
+  var lp='';d.sections.low_price.forEach(r=>{lp+='<div class="row"><span><span class="tag">低价</span>'+r.name+'</span><span>'+r.price+' '+pct(r.pct)+'</span></div>'});
+  if(!d.sections.low_price.length)lp='<div class="flat">暂无低价标的</div>';
+  document.getElementById('low_p').innerHTML=lp;
   var ev='';d.events.forEach(e=>{
     ev+='<div class="evt"><b>'+e.name+'</b> <span class="badge">'+e.type+'</span> <span class="badge">预计窗口 '+e.expected+'</span>'
        +'<div class="chain">传导链：'+e.chain+'</div><div class="chain">验证：'+e.verification+'</div></div>';
